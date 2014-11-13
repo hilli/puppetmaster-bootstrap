@@ -1,5 +1,5 @@
 #!/bin/bash
-PUPPET_REPO="http://apt.puppetlabs.com"
+PUPPET_REPO="http://yum.puppetlabs.com"
 OTHER_DEPENDS="
   lsb-release
   emacs23-nox
@@ -11,29 +11,38 @@ PUPPET_PACKAGES="
   puppetmaster-passenger
   vim-puppet
 "
+YUM_OTHER_DEPENDS="
+  vim
+  git-core
+"
 
 APT_OPTIONS='-qq -y'
+YUM_OPTIONS='-y'
 
 function add_puppet_repository()
 {
     DEBIAN_RELEASE=`lsb_release -cs`
+    RHEL_RELEASE=`lsb_release -a | grep Release | cut -f 2 | cut -f 1 -d .`
     # Add puppet repository for later puppet releases
-    wget http://apt.puppetlabs.com/puppetlabs-release-${DEBIAN_RELEASE}.deb
-    dpkg -i puppetlabs-release-${DEBIAN_RELEASE}.deb
-    apt-get -q update > /dev/null
+    #wget http://apt.puppetlabs.com/puppetlabs-release-${DEBIAN_RELEASE}.deb
+    #dpkg -i puppetlabs-release-${DEBIAN_RELEASE}.deb
+    #apt-get -q update > /dev/null
+    rpm -i "http://yum.puppetlabs.com/puppetlabs-release-el-${RHEL_RELEASE}.noarch.rpm"
 }
 
 function install_dependencies()
 {
     # Install required packages interactively, so postgresql can
     # prompt for a root password
-    apt-get ${APT_OPTIONS} install ${OTHER_DEPENDS}
+    #apt-get ${APT_OPTIONS} install ${OTHER_DEPENDS}
+    yum install ${YUM_OPTIONS} ${YUM_OTHER_DEPENDS}
 }
 
 function install_puppet()
 {
     # Install puppet packages
-    apt-get ${APT_OPTIONS} --install-recommends install ${PUPPET_PACKAGES}
+    #apt-get ${APT_OPTIONS} --install-recommends install ${PUPPET_PACKAGES}
+    yum install ${YUM_OTHER_DEPENDS} ${PUPPET_PACKAGES}
 }
 
 function configure_puppetmaster()
@@ -57,7 +66,7 @@ function reformat_conf_files()
 
 function restart_apache()
 {
-    /etc/init.d/apache2 restart
+    /etc/init.d/httpd restart
 }
 
 function create_minimal_manifest()
@@ -100,7 +109,7 @@ node '${FQDN}' {
     listen_address => '127.0.0.1',
   }
   class { 'puppetdb::master::config':
-    puppet_service_name => 'apache2',
+    puppet_service_name => 'httpd',
   }
 }
 EOF
